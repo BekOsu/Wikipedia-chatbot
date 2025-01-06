@@ -1,10 +1,9 @@
 import os
-import pickle
 from pathlib import Path
 from dotenv import load_dotenv
 from django.core.management.base import BaseCommand
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain.schema import Document
 from langchain.text_splitter import CharacterTextSplitter
 from ...models import Article
@@ -21,8 +20,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument("--delete", action="store_true", help="Delete the existing vector database.")
         parser.add_argument("--limit", type=int, default=1, help="Number of articles to process.")
-        parser.add_argument("--path", type=str, default="./wiki_embeddings.pkl",
-                            help="Path to save the vector database.")
+        parser.add_argument("--path", type=str, default="./wiki_embeddings", help="Path to save the vector database.")
 
     def handle(self, *args, **options):
         limit = options.get("limit")
@@ -47,10 +45,19 @@ class Command(BaseCommand):
 
     def _prompt_delete_vector_database(self, path):
         """
-        Delete the existing vector database file.
+        Delete the existing vector database directory.
         """
-        Path(path).unlink(missing_ok=True)
-        self.stdout.write(self.style.SUCCESS("Vector database deleted."))
+        db_path = Path(path)
+        if db_path.exists() and db_path.is_dir():
+            for file in db_path.iterdir():
+                file.unlink()
+            db_path.rmdir()
+            self.stdout.write(self.style.SUCCESS("Vector database deleted."))
+        elif db_path.exists():
+            db_path.unlink()
+            self.stdout.write(self.style.SUCCESS("Vector database file deleted."))
+        else:
+            self.stdout.write(self.style.WARNING("Vector database not found."))
 
     def _populate_vectorstore(self, article_qs):
         """
@@ -82,8 +89,15 @@ class Command(BaseCommand):
 
     def _save_vectorstore(self, path: str, vectorstore):
         """
-        Save the FAISS vector store to a file.
+        Save the FAISS vector store to a local directory.
         """
-        with open(path, "wb") as f:
-            pickle.dump(vectorstore, f)  # type: ignore
+        db_path = Path(path)
+
+        # If the path exists as a file, delete it
+        if db_path.exists() and db_path.is_file():
+            db_path.unlink()
+
+        # Save vector store
+        vectorstore.save_local(path)
         self.stdout.write(self.style.SUCCESS(f"Vector store saved to {path}."))
+
