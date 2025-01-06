@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from datasets import load_dataset
-from chatbot.models import Article
+from ...models import Article
 
 class Command(BaseCommand):
     help = "Manage Wikipedia articles: load, list, or delete articles."
