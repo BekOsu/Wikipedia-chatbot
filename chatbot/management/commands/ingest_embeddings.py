@@ -93,11 +93,14 @@ class Command(BaseCommand):
         """
         db_path = Path(path)
 
-        # If the path exists as a file, delete it
+        # Ensure path is a directory
         if db_path.exists() and db_path.is_file():
+            self.stdout.write("Deleting existing file at the path...")
             db_path.unlink()
 
         # Save vector store
+        self.stdout.write(f"Saving vector store to {path}...")
         vectorstore.save_local(path)
-        self.stdout.write(self.style.SUCCESS(f"Vector store saved to {path}."))
+        self.stdout.write("Vector store successfully saved.")
+
 
