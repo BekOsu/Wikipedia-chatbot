@@ -1,0 +1,1 @@
+Building a Chat Backend for Wikipedia Articles in Django, by combining Django, Wikipedia data, and modern NLP tools, we can create a powerful chat backend capable of retrieving meaningful.responses.
