@@ -141,24 +141,28 @@
 
 <script>
     $(document).ready(function () {
-        $("#send-btn").on("click", function () {
+        // Function to handle sending the message
+        function sendMessage() {
             const question = $("#user-question").val().trim();
             if (!question) {
                 alert("Please enter a question.");
                 return;
             }
 
+            // Add the user's message to the chat box
             $("#chat-box").append(`<p class="user">${question}</p>`);
-            $("#user-question").val("");
+            $("#user-question").val(""); // Clear the input field
 
+            // AJAX request to send the question to the server
             $.ajax({
                 url: "{% url 'chatbot:chat' %}",
                 type: "POST",
                 data: {question: question},
                 headers: {"X-CSRFToken": "{{ csrf_token }}"},
                 success: function (response) {
+                    // Add the bot's response to the chat box
                     $("#chat-box").append(`<p class="bot">${response.answer}</p>`);
-                    $("#chat-box").scrollTop($("#chat-box")[0].scrollHeight);
+                    $("#chat-box").scrollTop($("#chat-box")[0].scrollHeight); // Scroll to the bottom
                 },
                 error: function (xhr) {
                     const error = xhr.responseJSON?.error || "An error occurred.";
@@ -166,8 +170,22 @@
                     $("#chat-box").scrollTop($("#chat-box")[0].scrollHeight);
                 }
             });
+        }
+
+        // Click event for the send button
+        $("#send-btn").on("click", function () {
+            sendMessage();
+        });
+
+        // Keydown event for Enter key
+        $("#user-question").on("keydown", function (event) {
+            if (event.key === "Enter") {
+                event.preventDefault(); // Prevent default Enter behavior (e.g., form submission)
+                sendMessage(); // Trigger the sendMessage function
+            }
         });
     });
 </script>
+
 </body>
 </html>
