@@ -1,0 +1,173 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oxinus Chatbot</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f8;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: white;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .header img {
+            width: 50px;
+            height: 50px;
+            margin-right: 10px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 80px auto;
+            text-align: center;
+        }
+
+        .welcome-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 40px;
+        }
+
+        .chat-box-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .chat-box {
+            height: 400px;
+            width: 100%;
+            padding: 10px;
+            overflow-y: auto;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .chat-box p {
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 70%;
+        }
+
+        .chat-box .user {
+            background-color: #e9f0ff;
+            text-align: right;
+            margin-left: auto;
+        }
+
+        .chat-box .bot {
+            background-color: #f2f2f2;
+            text-align: left;
+            margin-right: auto;
+        }
+
+        .chat-input {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-top: 1px solid #e0e0e0;
+            width: 100%; /* Make sure it spans full width */
+            box-sizing: border-box; /* Include padding in the box model */
+        }
+
+        .chat-input input {
+            flex: 1; /* Ensures input takes up all available space */
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-right: 10px; /* Add space between the input and button */
+        }
+
+        .chat-input button {
+            padding: 15px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            flex-shrink: 0; /* Ensure the button doesn't shrink */
+        }
+
+        .chat-input button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<div class="header">
+    <img src="{% static 'oxinus.png' %}" alt="Oxinus Logo">
+    <h1>Oxinus Chatbot</h1>
+</div>
+
+<div class="container">
+    <div class="welcome-text">What can I help with?</div>
+
+    <div class="chat-box-container">
+        <div class="chat-box" id="chat-box"></div>
+        <div class="chat-input">
+            <input type="text" id="user-question" placeholder="Message ChatBot...">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $("#send-btn").on("click", function () {
+            const question = $("#user-question").val().trim();
+            if (!question) {
+                alert("Please enter a question.");
+                return;
+            }
+
+            $("#chat-box").append(`<p class="user">${question}</p>`);
+            $("#user-question").val("");
+
+            $.ajax({
+                url: "{% url 'chatbot:chat' %}",
+                type: "POST",
+                data: {question: question},
+                headers: {"X-CSRFToken": "{{ csrf_token }}"},
+                success: function (response) {
+                    $("#chat-box").append(`<p class="bot">${response.answer}</p>`);
+                    $("#chat-box").scrollTop($("#chat-box")[0].scrollHeight);
+                },
+                error: function (xhr) {
+                    const error = xhr.responseJSON?.error || "An error occurred.";
+                    $("#chat-box").append(`<p class="bot">${error}</p>`);
+                    $("#chat-box").scrollTop($("#chat-box")[0].scrollHeight);
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>

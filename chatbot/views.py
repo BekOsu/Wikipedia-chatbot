@@ -1,5 +1,5 @@
 import os
-from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from dotenv import load_dotenv
 from langchain.chains import ConversationalRetrievalChain
@@ -7,6 +7,7 @@ from langchain_openai import ChatOpenAI
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
+from .scripts.chat_with_wikipedia import get_qa_chain
 
 # Load environment variables
 load_dotenv()
@@ -33,17 +34,22 @@ memory = ConversationSummaryBufferMemory(llm=llm, memory_key="chat_history", ret
 qa_chain = ConversationalRetrievalChain.from_llm(llm=llm, retriever=retriever, memory=memory)
 
 
-# Chat view
-def chat(request):
-    if request.method == "POST":
-        question = request.POST.get("question", "").strip()
-        if not question:
-            return JsonResponse({"error": "Please provide a valid question."}, status=400)
+@csrf_exempt
+def chat_view(request):
+    if request.method == "GET":
+        # Render a simple HTML page with the chatbot interface
+        from django.shortcuts import render
+        return render(request, "chat_with_bot.html")  # Ensure this template exists
 
-        try:
-            result = qa_chain.invoke({"question": question})
-            answer = result.get("answer", "No answer found.")
-            return JsonResponse({"answer": answer})
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
-    return render(request, "chatbot/chat.html")
+    if request.method == "POST":
+        # Handle the chatbot question
+        question = request.POST.get("question")
+        if not question:
+            return JsonResponse({"error": "No question provided."}, status=400)
+
+        result = qa_chain.invoke({"question": question})
+        answer = result.get("answer", "Sorry, I couldn't find an answer.")
+        return JsonResponse({"answer": answer})
+
+    return JsonResponse({"error": "Invalid request method."}, status=405)
+
