@@ -22,7 +22,7 @@ def clean_topic(topic):
     topic = topic.strip().replace("\n", " ").replace("\r", "")  # Remove newlines and strip whitespace
     if len(topic.split()) <= 2:  # Skip topics with very few words
         return None
-    if "Pages" in topic or "Books" in topic or "Sources" in topic:  # Skip irrelevant topics
+    if any(keyword in topic.lower() for keyword in ["pages", "books", "sources", "other websites"]):  # Skip irrelevant topics
         return None
     return topic
 
@@ -34,16 +34,23 @@ def suggest_questions_from_vectorstore(query="Topics to explore", k=10):
         query (str): The query to search for in the vectorstore.
         k (int): Number of results to retrieve.
     Returns:
-        list: A list of unique topics from the vectorstore.
+        tuple: A tuple containing raw topics and cleaned topics.
     """
     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
     vectorstore = FAISS.load_local(VECTORSTORE_PATH, embeddings, allow_dangerous_deserialization=True)
     results = vectorstore.similarity_search(query, k=k)
 
+    # Raw topics
+    raw_topics = [doc.page_content.strip() for doc in results]
+
     # Clean and filter topics
-    topics = {clean_topic(doc.page_content) for doc in results}
-    topics = [topic for topic in topics if topic]  # Remove None values
-    return topics
+    cleaned_topics = list({clean_topic(topic) for topic in raw_topics})
+    cleaned_topics = [topic for topic in cleaned_topics if topic]  # Remove None values
+
+    # Keep raw topics that failed cleaning but are still useful
+    missing_cleaned_topics = [topic for topic in raw_topics if topic not in cleaned_topics]
+
+    return raw_topics, cleaned_topics, missing_cleaned_topics
 
 
 def generate_questions_from_topics(topics, max_templates=2):
@@ -79,17 +86,26 @@ def main():
         query = "Key topics in the articles"
 
     # Suggest topics
-    topics = suggest_questions_from_vectorstore(query=query)
-    if not topics:
+    raw_topics, cleaned_topics, missing_cleaned_topics = suggest_questions_from_vectorstore(query=query)
+
+    print("\nRaw Topics (Before Cleaning):")
+    for topic in raw_topics:
+        print(f"- {topic}")
+
+    print("\nCleaned Topics (After Cleaning):")
+    for topic in cleaned_topics:
+        print(f"- {topic}")
+
+    print("\nTopics Skipped or Missing in Cleaned Topics:")
+    for topic in missing_cleaned_topics:
+        print(f"- {topic}")
+
+    if not cleaned_topics:
         print("No topics found for the query.")
         return
 
-    print("\nSuggested Topics:")
-    for topic in topics:
-        print(f"- {topic}")
-
     # Generate questions
-    questions = generate_questions_from_topics(topics)
+    questions = generate_questions_from_topics(cleaned_topics)
     print("\nGenerated Questions:")
     for question in questions:
         print(f"- {question}")
