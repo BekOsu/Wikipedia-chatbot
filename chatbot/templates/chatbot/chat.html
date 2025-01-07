@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wikipedia Chatbot</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .chat-container {
+            max-width: 600px;
+            margin: auto;
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .chat-box {
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 10px;
+            margin-bottom: 20px;
+            height: 300px;
+            overflow-y: scroll;
+        }
+        .chat-input {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .chat-input button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            border-radius: 5px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <h1>Wikipedia Chatbot</h1>
+        <div class="chat-box" id="chat-box"></div>
+        <div class="chat-input">
+            <input type="text" id="user-question" placeholder="Ask Wikipedia something...">
+            <button id="send-btn">Send</button>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $("#send-btn").on("click", function() {
+                const question = $("#user-question").val();
+                if (!question) {
+                    alert("Please enter a question.");
+                    return;
+                }
+
+                $("#chat-box").append(`<p><strong>You:</strong> ${question}</p>`);
+                $("#user-question").val("");
+
+                $.ajax({
+                    url: "{% url 'chatbot:chat' %}",
+                    type: "POST",
+                    data: { question: question },
+                    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+                    success: function(response) {
+                        $("#chat-box").append(`<p><strong>Bot:</strong> ${response.answer}</p>`);
+                        $("#chat-box").scrollTop($("#chat-box")[0].scrollHeight);
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.error || "An error occurred.";
+                        $("#chat-box").append(`<p><strong>Bot:</strong> ${error}</p>`);
+                        $("#chat-box").scrollTop($("#chat-box")[0].scrollHeight);
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
